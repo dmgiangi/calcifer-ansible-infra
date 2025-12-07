@@ -1,35 +1,33 @@
 ---
 - name: Ensure required kernel modules are configured for Kubernetes
   ansible.builtin.copy:
-    dest: /etc/modules-load.d/k8s.conf
+    dest: "{{ k8s_modules_conf_path }}"
     content: |
-      overlay
-      br_netfilter
+      {% for module in k8s_kernel_modules %}
+      {{ module }}
+      {% endfor %}
     owner: root
     group: root
     mode: "0644"
 
-- name: Load overlay module
-  ansible.builtin.command: modprobe overlay
-  args:
-    warn: false
+- name: Load kernel modules
+  become: true
+  ansible.builtin.command: "modprobe {{ item }}"
+  loop: "{{ k8s_kernel_modules }}"
+  register: k8s_modprobe_results
   changed_when: false
-  failed_when: false
 
-- name: Load br_netfilter module
-  ansible.builtin.command: modprobe br_netfilter
-  args:
-    warn: false
-  changed_when: false
-  failed_when: false
+- name: Show modprobe results
+  ansible.builtin.debug:
+    var: k8s_modprobe_results
 
 - name: Configure sysctl parameters required by Kubernetes
   ansible.builtin.copy:
-    dest: /etc/sysctl.d/k8s.conf
+    dest: "{{ k8s_sysctl_conf_path }}"
     content: |
-      net.bridge.bridge-nf-call-ip6tables = 1
-      net.bridge.bridge-nf-call-iptables = 1
-      net.ipv4.ip_forward = 1
+      {% for key, value in k8s_sysctl_settings.items() %}
+      {{ key }} = {{ value }}
+      {% endfor %}
     owner: root
     group: root
     mode: "0644"
@@ -42,8 +40,10 @@
 
 - name: Comment out any swap entries in /etc/fstab
   ansible.builtin.replace:
-    path: /etc/fstab
-    regexp: '^(.*\s+swap\s+.*)$'
+    path: "{{ k8s_fstab_path }}"
+    regexp: "{{ k8s_swap_regexp }}"
     replace: '# \1'
   register: fstab_swap
-  changed_when: fstab_swap.before is defined and fstab_swap.after is defined and fstab_swap.before != fstab_swap.after
+  changed_when: fstab_swap.before is defined and
+                fstab_swap.after is defined and
+                fstab_swap.before != fstab_swap.after
