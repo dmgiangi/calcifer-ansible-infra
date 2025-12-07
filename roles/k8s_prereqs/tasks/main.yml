@@ -17,10 +17,6 @@
   register: k8s_modprobe_results
   changed_when: false
 
-- name: Show modprobe results
-  ansible.builtin.debug:
-    var: k8s_modprobe_results
-
 - name: Configure sysctl parameters required by Kubernetes
   ansible.builtin.copy:
     dest: "{{ k8s_sysctl_conf_path }}"
