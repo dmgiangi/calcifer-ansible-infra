@@ -10,8 +10,8 @@
   ansible.builtin.file:
     path: "{{ k8s_flux_ssh_private_key_dest | dirname }}"
     state: directory
-    owner: root
-    group: root
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: "0700"
   when:
     - k8s_flux_bootstrap_enabled
@@ -20,15 +20,14 @@
   ansible.builtin.copy:
     src: "{{ k8s_flux_ssh_private_key_src }}"
     dest: "{{ k8s_flux_ssh_private_key_dest }}"
-    owner: root
-    group: root
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: "0600"
   when:
     - k8s_flux_bootstrap_enabled
 
 - name: Bootstrap Flux against Git repository
   ansible.builtin.command: "{{ k8s_flux_bootstrap_cmd }}"
-  become: true
   args:
     creates: "{{ k8s_flux_bootstrap_marker_path }}"
   environment:

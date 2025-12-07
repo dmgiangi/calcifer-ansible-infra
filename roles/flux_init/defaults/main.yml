@@ -11,8 +11,9 @@ k8s_flux_bootstrap_cmd: >
   flux bootstrap git
   --url=ssh://git@github.com/dmgiangi/calcifer-platform-gitops.git
   --branch=master
-  --path=clusters/production
+  --path=infrastructure/controllers
   --private-key-file=/etc/flux/id
+  --silent
 
 # Marker file to prevent re-running bootstrap each time
 k8s_flux_bootstrap_marker_path: "/var/lib/flux-bootstrap.done"
