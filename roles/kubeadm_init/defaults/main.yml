@@ -1,7 +1,37 @@
 ---
 k8s_cluster_name: "main-cluster"
 k8s_pod_network_cidr: "10.244.0.0/16"        # Compatible with Flannel/Calico default
+
+# Main paths
+k8s_admin_conf_path: /etc/kubernetes/admin.conf
+
+k8s_ansible_user_home: "/home/{{ ansible_user }}"
+k8s_kubeconfig_dir: "{{ k8s_ansible_user_home }}/.kube"
+k8s_kubeconfig_path: "{{ k8s_kubeconfig_dir }}/config"
+
+# Binaries
+k8s_kubeadm_bin: kubeadm
+k8s_kubectl_bin: kubectl
+
+# Join command
+k8s_save_join_command: true
+k8s_join_command_path: /usr/local/bin/kubeadm-join.sh
+
+# CNI plugin
 k8s_install_cni: true
 k8s_cni_manifest_url: "https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml"
-k8s_save_join_command: true
-k8s_join_command_path: "/etc/kubernetes/kubeadm_join.sh"
+
+# Local Path Provisioner (StorageClass)
+k8s_local_path_provisioner_manifest_url: "https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml"
+k8s_local_path_storageclass_name: local-path
+k8s_default_storageclass_patch: '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
+# Taint del control plane
+k8s_control_plane_taint: "node-role.kubernetes.io/control-plane:NoSchedule-"
+
+# Copy Kubeconfig
+k8s_fetch_admin_conf: true
+
+k8s_local_kubeconfig_dir: "/home/fubus/.kube"
+k8s_local_kubeconfig_filename: "config"
+k8s_local_kubeconfig_path: "{{ k8s_local_kubeconfig_dir }}/{{ k8s_local_kubeconfig_filename }}"
