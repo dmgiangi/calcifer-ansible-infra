@@ -1,0 +1,7 @@
+---
+k8s_cluster_name: "main-cluster"
+k8s_pod_network_cidr: "10.244.0.0/16"        # Compatible with Flannel/Calico default
+k8s_install_cni: true
+k8s_cni_manifest_url: "https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml"
+k8s_save_join_command: true
+k8s_join_command_path: "/etc/kubernetes/kubeadm_join.sh"

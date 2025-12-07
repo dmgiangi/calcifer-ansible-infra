@@ -1,0 +1,8 @@
+---
+- hosts: kubernetes_party
+  become: true
+  roles:
+    - hostname_sync
+    - k8s_prereqs
+    - containerd
+    - kube_tools

@@ -1,0 +1,97 @@
+---
+- name: Check if control plane is already initialized
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubeadm_admin_conf
+
+- name: Set cluster_initialized fact
+  ansible.builtin.set_fact:
+    k8s_cluster_initialized: "{{ kubeadm_admin_conf.stat.exists | default(false) }}"
+
+- name: Show cluster initialization status
+  ansible.builtin.debug:
+    msg: "Cluster already initialized: {{ k8s_cluster_initialized }}"
+
+- name: Initialize Kubernetes control plane with kubeadm
+  ansible.builtin.command: >
+    kubeadm init
+    --pod-network-cidr={{ k8s_pod_network_cidr }}
+    --node-name={{ inventory_hostname }}
+  args:
+    creates: /etc/kubernetes/admin.conf
+  when: not k8s_cluster_initialized
+  register: kubeadm_init_result
+
+- name: Show kubeadm init output (first run only)
+  ansible.builtin.debug:
+    var: kubeadm_init_result.stdout_lines
+  when: not k8s_cluster_initialized
+
+# Copy kubeconfig for the Ansible SSH user (non-root)
+- name: Ensure .kube directory exists for Ansible user
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0700"
+  when: k8s_cluster_initialized or (kubeadm_init_result is defined and kubeadm_init_result.rc == 0)
+
+- name: Copy admin.conf to user kubeconfig
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ ansible_user }}/.kube/config"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+    remote_src: true
+  when: k8s_cluster_initialized or (kubeadm_init_result is defined and kubeadm_init_result.rc == 0)
+
+# Optional: save join command for future worker nodes
+- name: Generate kubeadm join command
+  ansible.builtin.command: kubeadm token create --print-join-command
+  register: k8s_join_cmd
+  changed_when: false
+  when:
+    - k8s_save_join_command
+    - k8s_cluster_initialized or (kubeadm_init_result is defined and kubeadm_init_result.rc == 0)
+
+- name: Save kubeadm join command to file
+  ansible.builtin.copy:
+    dest: "{{ k8s_join_command_path }}"
+    content: |
+      #!/bin/bash
+      {{ k8s_join_cmd.stdout }}
+    owner: root
+    group: root
+    mode: "0700"
+  when:
+    - k8s_save_join_command
+    - k8s_join_cmd is defined
+    - k8s_join_cmd.stdout is defined
+
+# Install CNI plugin (Flannel by default) using kubectl
+- name: Install CNI plugin
+  ansible.builtin.command: >
+    kubectl apply -f {{ k8s_cni_manifest_url }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: k8s_cni_apply
+  changed_when: false
+  when:
+    - k8s_install_cni
+    - k8s_cluster_initialized or (kubeadm_init_result is defined and kubeadm_init_result.rc == 0)
+
+- name: Show CNI apply output
+  ansible.builtin.debug:
+    var: k8s_cni_apply.stdout_lines
+  when:
+    - k8s_install_cni
+    - k8s_cni_apply is defined
+
+- name: Install Local Path Provisioner (StorageClass)
+  ansible.builtin.shell: >
+    kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml &&
+    kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf

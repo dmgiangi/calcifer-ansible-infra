@@ -1,0 +1,26 @@
+---
+- name: Show current and target hostname
+  ansible.builtin.debug:
+    msg: "Current hostname: {{ ansible_hostname }}, target hostname: {{ hostname_target }}"
+
+- name: Set system hostname to match inventory
+  ansible.builtin.hostname:
+    name: "{{ hostname_target }}"
+
+- name: Ensure /etc/hosts has a 127.0.1.1 entry for this hostname
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1\s+'
+    line: "127.0.1.1 {{ hostname_target }}"
+    state: present
+    create: yes
+    backup: yes
+
+- name: Ensure localhost entry is present in /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.0\.1\s+'
+    line: "127.0.0.1 localhost"
+    state: present
+    create: yes
+    backup: yes
