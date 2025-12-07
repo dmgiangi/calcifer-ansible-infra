@@ -28,6 +28,7 @@
 
 - name: Bootstrap Flux against Git repository
   ansible.builtin.command: "{{ k8s_flux_bootstrap_cmd }}"
+  become: true
   args:
     creates: "{{ k8s_flux_bootstrap_marker_path }}"
   environment:
