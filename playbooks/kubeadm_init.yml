@@ -4,3 +4,4 @@
   become: true
   roles:
     - kubeadm_init
+    - flux_init

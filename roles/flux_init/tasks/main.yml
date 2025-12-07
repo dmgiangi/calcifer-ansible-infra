@@ -1,0 +1,51 @@
+---
+- name: Install Flux CLI
+  ansible.builtin.shell: curl -s https://fluxcd.io/install.sh | bash
+  args:
+    creates: /usr/local/bin/flux
+  when: k8s_flux_install
+
+- name: Ensure Flux SSH directory exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ k8s_flux_ssh_private_key_dest | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  when:
+    - k8s_flux_bootstrap_enabled
+
+- name: Copy Flux Git SSH private key
+  ansible.builtin.copy:
+    src: "{{ k8s_flux_ssh_private_key_src }}"
+    dest: "{{ k8s_flux_ssh_private_key_dest }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when:
+    - k8s_flux_bootstrap_enabled
+
+- name: Bootstrap Flux against Git repository
+  ansible.builtin.command: "{{ k8s_flux_bootstrap_cmd }}"
+  args:
+    creates: "{{ k8s_flux_bootstrap_marker_path }}"
+  environment:
+    KUBECONFIG: "{{ k8s_admin_conf_path }}"
+  when:
+    - k8s_flux_bootstrap_enabled
+    - k8s_cluster_initialized or (kubeadm_init_result is defined and kubeadm_init_result.rc == 0)
+  register: k8s_flux_bootstrap_result
+  changed_when: k8s_flux_bootstrap_result.rc == 0
+
+- name: Create Flux bootstrap marker file
+  ansible.builtin.file:
+    path: "{{ k8s_flux_bootstrap_marker_path }}"
+    state: touch
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - k8s_flux_bootstrap_enabled
+    - k8s_flux_bootstrap_result is defined
+    - k8s_flux_bootstrap_result.rc == 0
