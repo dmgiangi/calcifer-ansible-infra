@@ -33,10 +33,11 @@ k8s_local_path_storageclass_name: local-path
 k8s_flux_install: true
 k8s_flux_bootstrap_enabled: true
 k8s_flux_bootstrap_cmd: >-
-  flux bootstrap git --url=ssh://git@github.com/dmgiangi/calcifer-platform-gitops.git \
-  --branch=master \
-  --path=clusters/production \
-  --private-key-file=/etc/flux/id \
+  flux bootstrap git
+  --url=ssh://git@github.com/dmgiangi/calcifer-platform-gitops.git
+  --branch=master
+  --path=clusters/production
+  --private-key-file=/etc/flux/id
   --silent
 
 # Secrets / Operator inputs (consider storing in Ansible Vault)
