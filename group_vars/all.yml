@@ -1,0 +1,43 @@
+---
+# Cluster identity
+k8s_cluster_name: "calcifer-cluster"
+
+# Paths (cluster-wide conventions used by multiple roles)
+k8s_admin_conf_path: /etc/kubernetes/admin.conf
+
+# Networking
+k8s_pod_network_cidr: "10.244.0.0/16"
+# service_cidr: "10.96.0.0/12"  # (optional)
+
+# Versions
+k8s_minor_version: "v1.34"
+
+# Node prerequisites (identical across all nodes)
+k8s_kernel_modules:
+  - overlay
+  - br_netfilter
+k8s_sysctl_settings:
+  net.bridge.bridge-nf-call-ip6tables: 1
+  net.bridge.bridge-nf-call-iptables: 1
+  net.ipv4.ip_forward: 1
+
+# CNI (cluster-wide networking plugin)
+k8s_install_cni: true
+k8s_cni_manifest_url: "https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml"
+
+# Default StorageClass (cluster-wide addon choice)
+k8s_local_path_provisioner_manifest_url: "https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml"
+k8s_local_path_storageclass_name: local-path
+
+# GitOps / Flux (cluster-level desired state)
+k8s_flux_install: true
+k8s_flux_bootstrap_enabled: true
+k8s_flux_bootstrap_cmd: >-
+  flux bootstrap git --url=ssh://git@github.com/dmgiangi/calcifer-platform-gitops.git \
+  --branch=master \
+  --path=clusters/production \
+  --private-key-file=/etc/flux/id \
+  --silent
+
+# Secrets / Operator inputs (consider storing in Ansible Vault)
+k8s_flux_ssh_private_key_src: "/home/fubus/.ssh/flux_id"

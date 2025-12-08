@@ -1,19 +1,5 @@
 ---
-k8s_flux_install: true
-
-# Private key used by Flux to authenticate to the Git repository
-k8s_flux_ssh_private_key_src: "/home/fubus/.ssh/flux_id"
 k8s_flux_ssh_private_key_dest: "/etc/flux/id"
-
-# Bootstrap command (adapt for GitHub/GitLab, etc.)
-k8s_flux_bootstrap_enabled: true
-k8s_flux_bootstrap_cmd: >
-  flux bootstrap git
-  --url=ssh://git@github.com/dmgiangi/calcifer-platform-gitops.git
-  --branch=master
-  --path=clusters/production
-  --private-key-file=/etc/flux/id
-  --silent
 
 # Marker file to prevent re-running bootstrap each time
 k8s_flux_bootstrap_marker_path: "/var/lib/flux-bootstrap.done"

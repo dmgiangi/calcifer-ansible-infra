@@ -11,13 +11,7 @@ k8s_kubectl_bin: kubectl
 k8s_save_join_command: true
 k8s_join_command_path: /usr/local/bin/kubeadm-join.sh
 
-# CNI plugin
-k8s_install_cni: true
-k8s_cni_manifest_url: "https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml"
-
-# Local Path Provisioner (StorageClass)
-k8s_local_path_provisioner_manifest_url: "https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml"
-k8s_local_path_storageclass_name: local-path
+# CNI and StorageClass selection moved to global vars
 k8s_default_storageclass_patch: '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 
 # Taint del control plane
