@@ -74,3 +74,9 @@
     regexp: '^\s*disabled_plugins\s*=.*cri'
     state: absent
   notify: Restart containerd
+
+- name: Ensure containerd is restarted immediately
+  ansible.builtin.service:
+    name: containerd
+    state: restarted
+    enabled: true

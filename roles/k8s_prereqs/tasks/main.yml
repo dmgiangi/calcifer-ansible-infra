@@ -29,6 +29,10 @@
     mode: "0644"
   notify: Reload sysctl
 
+- name: Apply sysctl params without waiting for handler
+  ansible.builtin.command: sysctl --system
+  changed_when: false
+
 - name: Disable swap at runtime
   ansible.builtin.command: swapoff -a
   when: ansible_swaptotal_mb | default(0) > 0

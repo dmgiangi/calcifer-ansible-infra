@@ -2,6 +2,39 @@
 - name: Initialize Kubernetes control plane
   hosts: control_plane
   become: true
-  roles:
-    - kubeadm_init
-    - flux_init
+  tasks:
+    # ---------------------------------------------------------
+    # Phase 1: Preparation & Installation
+    # ---------------------------------------------------------
+    - name: Sync hostname
+      include_role:
+        name: hostname_sync
+
+    - name: Setup Kubernetes prerequisites (sysctl, modules, swap)
+      include_role:
+        name: k8s_prereqs
+
+    - name: Install and configure Containerd
+      include_role:
+        name: containerd
+
+    - name: Install Kubernetes tools (kubeadm, kubelet, kubectl)
+      include_role:
+        name: kube_tools
+
+    # ---------------------------------------------------------
+    # Phase 2: Flush Handlers
+    # ---------------------------------------------------------
+    - name: Ensure all configs are applied before initialization
+      meta: flush_handlers
+
+    # ---------------------------------------------------------
+    # Phase 3: Cluster Initialization
+    # ---------------------------------------------------------
+    - name: Initialize Kubernetes Control Plane
+      include_role:
+        name: kubeadm_init
+
+    - name: Initialize Flux
+      include_role:
+        name: flux_init

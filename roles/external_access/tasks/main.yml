@@ -1,0 +1,46 @@
+---
+- name: "Enable IPv4 forwarding"
+  ansible.builtin.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    state: present
+    reload: true
+
+- name: "DNAT HTTP/HTTPS traffic from WAN to Kong LB"
+  ansible.builtin.iptables:
+    table: nat
+    chain: PREROUTING
+    in_interface: "{{ wan_iface }}"
+    protocol: tcp
+    destination_port: "{{ item }}"
+    jump: DNAT
+    to_destination: "{{ kube_lb_ip }}:{{ item }}"
+  loop: "{{ kube_lb_ports }}"
+
+- name: "MASQUERADE cluster LAN traffic to WAN"
+  ansible.builtin.iptables:
+    table: nat
+    chain: POSTROUTING
+    out_interface: "{{ wan_iface }}"
+    source: "{{ cluster_lan_cidr }}"
+    jump: MASQUERADE
+
+- name: "Install iptables-persistent"
+  ansible.builtin.apt:
+    name: iptables-persistent
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
+- name: "Ensure /etc/iptables directory exists"
+  ansible.builtin.file:
+    path: /etc/iptables
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: ansible_os_family == "Debian"
+
+- name: "Save iptables rules to /etc/iptables/rules.v4"
+  ansible.builtin.shell: iptables-save | tee /etc/iptables/rules.v4 > /dev/null
+  when: ansible_os_family == "Debian"
