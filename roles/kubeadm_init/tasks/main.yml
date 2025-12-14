@@ -12,11 +12,27 @@
   ansible.builtin.debug:
     msg: "Cluster already initialized: {{ k8s_cluster_initialized }}"
 
+- name: Create kubeadm configuration file
+  ansible.builtin.copy:
+    dest: "/tmp/kubeadm-config.yaml"
+    content: |
+      apiVersion: kubeadm.k8s.io/v1beta3
+      kind: InitConfiguration
+      nodeRegistration:
+        name: "{{ inventory_hostname }}"
+        kubeletExtraArgs:
+          node-ip: "{{ ansible_host }}"
+        taints: []
+      ---
+      apiVersion: kubeadm.k8s.io/v1beta3
+      kind: ClusterConfiguration
+      networking:
+        podSubnet: "{{ k8s_pod_network_cidr }}"
+  when: not k8s_cluster_initialized
+
 - name: Initialize Kubernetes control plane with kubeadm
   ansible.builtin.command: >
-    {{ k8s_kubeadm_bin }} init
-    --pod-network-cidr={{ k8s_pod_network_cidr }}
-    --node-name={{ inventory_hostname }}
+    {{ k8s_kubeadm_bin }} init --config /tmp/kubeadm-config.yaml
   args:
     creates: "{{ k8s_admin_conf_path }}"
   when: not k8s_cluster_initialized
@@ -58,21 +74,6 @@
   when:
     - k8s_install_cni
     - k8s_cluster_initialized or (kubeadm_init_result is defined and kubeadm_init_result.rc == 0)
-
-- name: Show CNI apply output
-  ansible.builtin.debug:
-    var: k8s_cni_apply.stdout_lines
-  when:
-    - k8s_install_cni
-    - k8s_cni_apply is defined
-
-- name: Install Local Path Provisioner (StorageClass)
-  ansible.builtin.shell: >
-    {{ k8s_kubectl_bin }} apply -f {{ k8s_local_path_provisioner_manifest_url }} &&
-    {{ k8s_kubectl_bin }} patch storageclass {{ k8s_local_path_storageclass_name }}
-    -p '{{ k8s_default_storageclass_patch }}'
-  environment:
-    KUBECONFIG: "{{ k8s_admin_conf_path }}"
 
 - name: Remove NoSchedule Taint from Control Plane for single-node setup
   ansible.builtin.command: >
